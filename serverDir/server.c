@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -621,7 +622,6 @@ int main()
 {
 	// Variable declaration
 	home = getenv("HOME");
-	strcpy(home, "/Users/avinashkarhana/testingFolder");
 	int serverSocket;
 	int newSocket;
 	struct sockaddr_in newAddr;
