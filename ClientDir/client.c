@@ -342,7 +342,6 @@ void handleServerResponse(int clientSocket, char *fileName)
 				char str[200];
 				sprintf(str, "tar -xzf %s", fileName);
 				system(str);
-				remove(fileName);
 			}
 		}
 	}
@@ -458,6 +457,8 @@ int main(int argc, char* argv[])
 	// Keep looping to prompt user for commands and communicate with server
 	while (1)
 	{
+		memset(read_buffer, 0, BUFFER_SIZE);
+
 		// prompt user for command
 		printf("C$ ");
 		// get command from user
