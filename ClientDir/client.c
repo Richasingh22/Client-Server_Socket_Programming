@@ -317,14 +317,14 @@ void handleServerResponse(int clientSocket, char *fileName)
 				ssize_t bytes_read = recv(clientSocket, read_buffer, BUFFER_SIZE, 0);
 				if (bytes_read == -1)
 				{
-					perror("Error in receiving data");
+					printf("Error in receiving data");
 					break;
 				}
 				// Write data to file
 				ssize_t bytes_written = write(fd, read_buffer, bytes_read);
 				if (bytes_written == -1)
 				{
-					perror("Error in writing data");
+					printf("Error in writing data");
 					break;
 				}
 				if (bytes_written < bytes_read)
@@ -411,8 +411,15 @@ int connectToServer(char *serverType)
 }
 
 // Main function
-int main()
+int main(int argc, char* argv[])
 {
+	if (argc != 3 && argc != 1) {
+		printf("Usage: %s <Server IP> <Mirror IP>\n", argv[0]);
+		exit(1);
+	}else if(argc==3){
+		PRIMARY_SERVER_IP=argv[1];
+		MIRROR_SERVER_IP=argv[2];
+	}
 	int clientSocket;
 	char buffer[MAX_COMMAND_LENGTH];
 	char str[MAX_COMMAND_LENGTH];
