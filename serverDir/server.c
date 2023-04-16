@@ -38,80 +38,6 @@ void splitString(char *str)
 	}
 }
 
-// Function to cater to findfile command (Recursively calling function therefore can not have File Not Found message in the function)
-int findFile(int newSocket, char *filename, char *path)
-{
-	struct stat st;
-	DIR *dir;
-	struct dirent *entry;
-	char fullpath[MAX_COMMAND_LENGTH];
-
-	if (stat(path, &st) == -1)
-	{
-		// perror("stat");
-		return 1;
-	}
-
-	// check if the path is a directory
-	if (S_ISDIR(st.st_mode))
-	{
-		// try to open the directory
-		if ((dir = opendir(path)) == NULL)
-		{
-			// perror("opendir");
-			return 1;
-		}
-
-		// read all the files and directories within directory
-		while ((entry = readdir(dir)) != NULL)
-		{
-			// ignore the current and parent directory
-			if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-			{
-				continue;
-			}
-
-			// construct the new full path from our base path and current file/directory
-			snprintf(fullpath, MAX_COMMAND_LENGTH, "%s/%s", path, entry->d_name);
-
-			// recursively call findFile on the new full path
-			if (findFile(newSocket, filename, fullpath) == 0)
-			{
-				return 0;
-			}
-		}
-		closedir(dir);
-	}
-	// if not a directory
-	else
-	{
-		// check if the filename matches the path
-		if (strcmp(filename, path + strlen(path) - strlen(filename)) == 0)
-		{
-			// get the file stats
-			if (stat(path, &st) == -1)
-			{
-				// perror("stat");
-				return 1;
-			}
-
-			// print the file stats
-			printf("Found file %s\n", path);
-			printf("Size: %jd bytes\n", (intmax_t)st.st_size);
-			printf("Date created: %s", ctime(&st.st_ctime));
-
-			// Prepare the message to send to the client
-			char *message = malloc(MAX_COMMAND_LENGTH * sizeof(char));
-			sprintf(message, "File: %s\nSize: %jd bytes\nDate created: %s", path, (intmax_t)st.st_size, ctime(&st.st_ctime));
-
-			// send the message to the client
-			send(newSocket, message, strlen(message), 0);
-			return 0;
-		}
-	}
-	return 1;
-}
-
 // Function to run the command
 int runCommand(char *command)
 {
@@ -232,6 +158,33 @@ void sendResponseToClient(int newSocket, int sendFile, char *filename)
 		send(newSocket, error, strlen(error), 0);
 		printf("Message sent successfully...\n");
 	}
+}
+
+// Function to get status of file
+int findFile(int newSocket){
+	struct stat fileStat;
+	char command[MAX_COMMAND_LENGTH];
+    char output[MAX_COMMAND_LENGTH];
+	snprintf(command, sizeof(command), "find %s -name \"%s\" -type f -print -exec ls -lh --time-style=+\"%%Y-%%m-%%d %%H:%%M:%%S\" {} \\; 2>/dev/null | head -n1",home, commands[1]);
+    FILE *fp = popen(command, "r");
+    if (fp == NULL) {
+        perror("popen failed");
+    }
+    if (fgets(output, sizeof(output), fp) != NULL) {
+		output[strcspn(output, "\n")] = 0;
+		stat(output, &fileStat);
+		printf( "\nFile: %s\nSize: %ld bytes\nDate created: %s", output, fileStat.st_size, ctime(&fileStat.st_ctime));
+		char *message=malloc(MAX_COMMAND_LENGTH * sizeof(char));
+		sprintf(message, "File: %s\nSize: %ld bytes\nDate created: %s", output, fileStat.st_size, ctime(&fileStat.st_ctime));
+		printf("%s", message);
+		send(newSocket, message, strlen(message), 0);
+	}
+	else
+	{
+		char *message = "File not found";
+		send(newSocket, message, strlen(message), 0);
+	}
+	pclose(fp);
 }
 
 // Function to cater to sgetfiles command
@@ -538,11 +491,12 @@ void handleClient(int serverSocket, int newSocket, struct sockaddr_in newAddr)
 				// handle the client request based on the command
 				if (strcmp(cmd, "findfile") == 0)
 				{
-					if (findFile(newSocket, commands[1], home) != 0)
-					{
-						message = "No files found";
-						send(newSocket, message, strlen(message), 0);
-					}
+					// if (findFile(newSocket, commands[1], home) != 0)
+					// {
+					// 	message = "No files found";
+					// 	send(newSocket, message, strlen(message), 0);
+					// }
+					findFile(newSocket);
 				}
 				else if (strcmp(cmd, "sgetfiles") == 0)
 				{
@@ -587,7 +541,6 @@ int createAndStartServer()
 	memset(&serverAddr, '\0', sizeof(serverAddr));
 	serverAddr.sin_family = AF_INET;
 	serverAddr.sin_port = htons(PORT);
-	// set the server address to localhost
 	//serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
 	serverAddr.sin_addr.s_addr = INADDR_ANY;
 

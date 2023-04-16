@@ -517,7 +517,7 @@ int main(int argc, char* argv[])
 			}
 			else
 			{
-				printf("Server: %s\n", read_buffer);
+				printf("%s\n", read_buffer);
 			}
 		}
 		// printf("\n++++++++++++++++++++++\n");
